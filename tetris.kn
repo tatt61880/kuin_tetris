@@ -1,6 +1,6 @@
 {
-    tetris.kn (for Kuin 0.023):
-        Last Modified: 2013/03/29 01:28:58.
+    tetris.kn (for Kuin 0.03):
+        Last Modified: 2013/07/21 07:34:22.
         Created by @tatt61880
             https://twitter.com/tatt61880
             https://github.com/tatt61880
@@ -11,41 +11,41 @@
             https://github.com/DQNEO/CppTetris
 }
 
-var board : [][]int
+var Board: [][]int
 
-class POSITION()
-    var x:int
-    var y:int
-    func Init(x:int, y:int) :POSITION
+class CPos()
+    var x: int
+    var y: int
+    func Init(x: int, y: int): CPos
         do this.x :: x
         do this.y :: y
         return this
     end func
 end class
 
-class BLOCK()
-    var rotate:int
-    var p:[]tetris@POSITION
-    func Init(r:int, p0x:int, p0y:int, p1x:int, p1y:int, p2x:int, p2y:int) :BLOCK
+class CBlock()
+    var rotate: int
+    var p: []@CPos
+    func Init(r: int, p0x: int, p0y: int, p1x: int, p1y: int, p2x: int, p2y: int): CBlock
         do this.rotate :: r
-        do this.p :: @new [3]tetris@POSITION
-        do this.p[0] :: (@new tetris@POSITION).Init(p0x, p0y)
-        do this.p[1] :: (@new tetris@POSITION).Init(p1x, p1y)
-        do this.p[2] :: (@new tetris@POSITION).Init(p2x, p2y)
+        do this.p :: #[3]@CPos
+        do this.p[0] :: (#@CPos).Init(p0x, p0y)
+        do this.p[1] :: (#@CPos).Init(p1x, p1y)
+        do this.p[2] :: (#@CPos).Init(p2x, p2y)
         return this
     end func
 end class
 
-var block_:[]tetris@BLOCK
+var Block: []@CBlock
 
-class STATUS()
-    var x:int
-    var y:int
-    var type:int
-    var rotate:int
-    { Kuin 0.023にはクラスに対するCopyが実装されていないようなので、自作のCopyで代用 }
-    func Copy() :STATUS
-        var ret:tetris@STATUS :: @new tetris@STATUS
+class CStatus()
+    var x: int
+    var y: int
+    var type: int
+    var rotate: int
+    { Kuin 0.023にはクラスに対するCopyが実装されていないようなので、自作のMyCopyで代用 }
+    func MyCopy(): CStatus
+        var ret: @CStatus :: #@CStatus
         do ret.x :: this.x
         do ret.y :: this.y
         do ret.type :: this.type
@@ -54,117 +54,123 @@ class STATUS()
     end func
 end class
 
-var current:tetris@STATUS
+var Current: @CStatus
 
-func random(max:int) :int
-    return Kuin@Rand(0, max-1)
+func Random(max: int): int
+    return Kuin@Rnd(0, max-1)
 end func
 
-func putBlock(s:tetris@STATUS, action:bool) :bool
-    if(tetris@board[s.x][s.y] <> 0)
+func PutBlock(s: @CStatus, action: bool): bool
+    if(@Board[s.x][s.y] <> 0)
         return false
     end if
 
     if(action)
-        do tetris@board[s.x][s.y] :: s.type
+        do @Board[s.x][s.y] :: s.type
     end if
 
     for i(0, 2)
-        var dx:int :: tetris@block_[s.type].p[i].x
-        var dy:int :: tetris@block_[s.type].p[i].y
-        var r:int :: s.rotate % tetris@block_[s.type].rotate
+        var dx: int :: @Block[s.type].p[i].x
+        var dy: int :: @Block[s.type].p[i].y
+        var r: int :: s.rotate % @Block[s.type].rotate
         for(0, r-1)
-            var nx:int :: dx
-            var ny:int :: dy
+            var nx: int :: dx
+            var ny: int :: dy
             do dx :: ny
             do dy :: -nx
         end for
-        if(tetris@board[s.x + dx][s.y + dy] <> 0)
+        if(@Board[s.x + dx][s.y + dy] <> 0)
             return false
         end if
         if(action)
-            do tetris@board[s.x + dx][s.y + dy] :: s.type
+            do @Board[s.x + dx][s.y + dy] :: s.type
         end if
     end for
     if(!action)
-        do tetris@putBlock(s, true)
+        do @PutBlock(s, true)
     end if
     return true
 end func
 
-func deleteBlock(s:tetris@STATUS) :bool
-    do tetris@board[s.x][s.y] :: 0
+func DeleteBlock(s: @CStatus): bool
+    do @Board[s.x][s.y] :: 0
 
     for i(0, 2)
-        var dx:int :: tetris@block_[s.type].p[i].x
-        var dy:int :: tetris@block_[s.type].p[i].y
-        var r:int :: s.rotate % tetris@block_[s.type].rotate
+        var dx: int :: @Block[s.type].p[i].x
+        var dy: int :: @Block[s.type].p[i].y
+        var r: int :: s.rotate % @Block[s.type].rotate
         for(0, r-1)
-            var nx:int :: dx
-            var ny:int :: dy
+            var nx: int :: dx
+            var ny: int :: dy
             do dx :: ny
             do dy :: -nx
         end for
-        do tetris@board[s.x + dx][s.y + dy] :: 0
+        do @Board[s.x + dx][s.y + dy] :: 0
     end for
 
     return true
 end func
 
-func showBoard()
+func ShowBoard()
     for x(1, 10)
         for y(1, 20)
-            do tetris@BitBlt((x - 1) * 24, (20 - y) * 24, tetris@board[x][y])
+            do @BitBlt((x - 1) * 24, (20 - y) * 24, @Board[x][y])
         end for
     end for
 end func
 
-func processInput() :bool
-    var ret:bool :: false
-    { var n:tetris@STATUS :: tetris@current { tetris.cppではcurrentは構造体(代入すると値がコピーされることになる)。tetris.knではクラス。代入すると同じインスタンスを指すことになってしまうので、正しく動作させるにはコピーする必要がある。 } }
-    var n:tetris@STATUS :: (tetris@current).Copy()
-    if(DI@PadBtn(0, DI@EPadBtn#Left) > 0)
+func ProcessInput(): bool
+    var ret: bool :: false
+    { var n:@CStatus :: tetris@Current { tetris.cppではCurrentは構造体(代入すると値がコピーされることになる)。tetris.knではクラス。代入すると同じインスタンスを指すことになってしまうので、正しく動作させるにはコピーする必要がある。 } }
+    var n: @CStatus :: (@Current).MyCopy()
+    var soundFlag: bool :: true
+    if(Input@Pad(0, Input@EBtn#Left) > 0)
         do n.x :- 1
-    elif(DI@PadBtn(0, DI@EPadBtn#Right) > 0)
+    elif(Input@Pad(0, Input@EBtn#Right) > 0)
         do n.x :+ 1
-    elif(DI@PadBtn(0, DI@EPadBtn#Up) > 0)
+    elif(Input@Pad(0, Input@EBtn#Up) > 0)
         do n.rotate :+ 1
-    elif(DI@PadBtn(0, DI@EPadBtn#Down) > 0)
+    elif(Input@Pad(0, Input@EBtn#Down) > 0)
         do n.y :- 1
         do ret :: true
+    else
+        do soundFlag :: false
+    end if
+    if (soundFlag)
+        do @Se.Play(0.0, false, 0.0)
     end if
 
-    if(n.x <> tetris@current.x | n.y <> tetris@current.y | n.rotate <> tetris@current.rotate)
-        do tetris@deleteBlock(tetris@current)
-        if(tetris@putBlock(n, false))
-            do tetris@current :: n
+    if(n.x <> @Current.x | n.y <> @Current.y | n.rotate <> @Current.rotate)
+        do @DeleteBlock(@Current)
+        if(@PutBlock(n, false))
+            do @Current :: n
         else
-            do tetris@putBlock(tetris@current, false)
+            do @PutBlock(@Current, false)
         end if
     end if
 
     return ret
 end func
 
-func gameOver()
+func GameOver()
     for x(1, 10)
         for y(1, 20)
-            if(tetris@board[x][y] <> 0)
-                do tetris@board[x][y] :: 1
+            if(@Board[x][y] <> 0)
+                do @Board[x][y] :: 1
             end if
         end for
     end for
     while(true) { KillTimer(hMainWindow, 100)の代わりの無限ループ }
-        do tetris@showBoard()
+        do @ShowBoard()
         do Kuin@Act()
     end while
 end func
 
-func deleteLine()
+func DeleteLine()
     for y(1, 22)
-        var flag:bool :: true
+        var flag: bool :: true
         for x(1, 10)
-            if(tetris@board[x][y] = 0)
+            if(@Board[x][y] = 0)
                 do flag :: false
             end if
         end for
@@ -172,7 +178,7 @@ func deleteLine()
         if(flag)
             for j(y, 22)
                 for i(1, 10)
-                    do tetris@board[i][j] :: tetris@board[i][j + 1]
+                    do @Board[i][j] :: @Board[i][j + 1]
                 end for
             end for
             do y :- 1
@@ -181,93 +187,116 @@ func deleteLine()
 end func
 
 func blockDown()
-    do tetris@deleteBlock(tetris@current)
-    do tetris@current.y :- 1
-    if(!tetris@putBlock(tetris@current, false))
-        do tetris@current.y :+ 1
-        do tetris@putBlock(tetris@current, false)
+    do @DeleteBlock(@Current)
+    do @Current.y :- 1
+    if(!@PutBlock(@Current, false))
+        do @Current.y :+ 1
+        do @PutBlock(@Current, false)
 
-        do tetris@deleteLine()
+        do @DeleteLine()
 
-        do tetris@current.x :: 5
-        do tetris@current.y :: 21
-        do tetris@current.type :: tetris@random(7) + 1
-        do tetris@current.rotate :: tetris@random(4)
-        if(!tetris@putBlock(tetris@current, false))
-            do tetris@gameOver()
+        do @Current.x :: 5
+        do @Current.y :: 21
+        do @Current.type :: @Random(7) + 1
+        do @Current.rotate :: @Random(4)
+        if(!@PutBlock(@Current, false))
+            do @GameOver()
         end if
     end if
 end func
 
-func Init(cfg : Kuin@CCfg)
+func Init(cfg: Kuin@CCfg)
     do cfg.Title :: "テトリス"
-    do cfg.FullScr :: false
-    do cfg.PadNum :: 1
-    do cfg.WaitTime :: 20 {Kuin 0.023 では、WaitTimeの値が10,20,30,60,120以外の場合に限って、1フレームが1/WaitTime秒(Kuin@FPS()=WaitTime)になるように停止処理が入るらしい。}
 end func
 
+var Se: Snd@CSnd
 func Main()
-    do tetris@bitmap :: D3D@LoadTex("block.png")
+    { ※kntexファイルの画像サイズは2^nになるようにしましょう }
+    do @Bitmap :: Draw@LoadTex("block.kntex")
+    do @Se :: Snd@Load("se.ogg")
 
-    { Init block_ }
-    do tetris@block_ :: @new [8]tetris@BLOCK
-    do tetris@block_[0] :: (@new tetris@BLOCK).Init(1, 0,  0, 0, 0, 0, 0) {null}
-    do tetris@block_[1] :: (@new tetris@BLOCK).Init(2, 0, -1, 0, 1, 0, 2) {tetris}
-    do tetris@block_[2] :: (@new tetris@BLOCK).Init(4, 0, -1, 0, 1, 1, 1) {L1}
-    do tetris@block_[3] :: (@new tetris@BLOCK).Init(4, 0, -1, 0, 1,-1, 1) {L2}
-    do tetris@block_[4] :: (@new tetris@BLOCK).Init(2, 0, -1, 1, 0, 1, 1) {key1}
-    do tetris@block_[5] :: (@new tetris@BLOCK).Init(2, 0, -1,-1, 0,-1, 1) {key2}
-    do tetris@block_[6] :: (@new tetris@BLOCK).Init(1, 0,  1, 1, 0, 1, 1) {square}
-    do tetris@block_[7] :: (@new tetris@BLOCK).Init(4, 0, -1, 1, 0,-1, 0) {T}
+    { Init Block }
+    do @Block :: #[8]@CBlock
+    do @Block[0] :: (#@CBlock).Init(1, 0,  0, 0, 0, 0, 0) {null}
+    do @Block[1] :: (#@CBlock).Init(2, 0, -1, 0, 1, 0, 2) {tetris}
+    do @Block[2] :: (#@CBlock).Init(4, 0, -1, 0, 1, 1, 1) {L1}
+    do @Block[3] :: (#@CBlock).Init(4, 0, -1, 0, 1,-1, 1) {L2}
+    do @Block[4] :: (#@CBlock).Init(2, 0, -1, 1, 0, 1, 1) {key1}
+    do @Block[5] :: (#@CBlock).Init(2, 0, -1,-1, 0,-1, 1) {key2}
+    do @Block[6] :: (#@CBlock).Init(1, 0,  1, 1, 0, 1, 1) {square}
+    do @Block[7] :: (#@CBlock).Init(4, 0, -1, 1, 0,-1, 0) {T}
 
-    { Init board }
-    do tetris@board :: @new [12][]int
+    { Init Board }
+    do @Board :: #[12][]int
     for i(0, 11)
-        do tetris@board[i] :: @new [25]int
+        do @Board[i] :: #[25]int
     end for
     for x(0, 11)
         for y(0, 24)
             if(x = 0 | x = 11 | y = 0)
-                do tetris@board[x][y] :: 1
+                do @Board[x][y] :: 1
             {
             else
                 { Kuinの場合、デフォルトで0が入っている }
-                do tetris@board[x][y] :: 0
+                do @Board[x][y] :: 0
             }
             end if
         end for
     end for
 
-    { Init current }
-    do tetris@current :: @new tetris@STATUS
-    do tetris@current.x :: 5
-    do tetris@current.y :: 21
-    do tetris@current.type :: tetris@random(7) + 1
-    do tetris@current.rotate :: tetris@random(4)
+    { Init Current }
+    do @Current :: #@CStatus
+    do @Current.x :: 5
+    do @Current.y :: 21
+    do @Current.type :: @Random(7) + 1
+    do @Current.rotate :: @Random(4)
 
-    do tetris@putBlock(tetris@current, false)
-    var w:int :: 0
+    do @PutBlock(@Current, false)
+    var w: int :: 0
 
+    do BGM@Play("bgm.ogg", 0.0, 0.0)
     while(true)
         do Kuin@Act()
         {do Kuin@Dbg("Kuin@FPS()=" ~ Kuin@FPS().ToStr())}
         {do Kuin@Dbg("Kuin@Cnt()=" ~ Kuin@Cnt().ToStr())}
         if(w % 2 = 0)
-            if(tetris@processInput())
+            if(@ProcessInput())
                 do w :: 0
             end if
         end if
         if(w % 5 = 0)
             {do Kuin@Dbg("w % 5 = 0")}
-            do tetris@blockDown()
+            do @blockDown()
         end if
         do w :+ 1
-        do tetris@showBoard()
+        do @ShowBoard()
     end while
 end func
 
-var bitmap:D3D@CTex
-func BitBlt(x:int, y:int, id:int)
-    do D3D@DrawTex(tetris@bitmap, 0.0, id$float*24.0, 24.0, 24.0, x$float, y$float, 1.0, 1.0, 1.0, 1.0)
+var Bitmap: Draw@CTex
+func BitBlt(x: int, y: int, id: int)
+    do @Bitmap.Draw(0.0, id$ float * 24.0, 24.0, 24.0, x$ float, y$ float, 1.0, 1.0, 1.0, 1.0)
+
+    {
+        画像ファイル読み込みが手元の環境でうまくいかないので(調査中)、画像の代わりにDraw@Rectで代用しています。
+        { Kuin 0.03では、switchブロックがコンパイルエラーになるので、if, elif～で代用しています。 }
+    if (id = 0)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 0.5, 0.5, 0.5, 1.0)
+    elif (id = 1)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 1.0, 0.0, 0.0, 1.0)
+    elif (id = 2)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 1.0, 1.0, 0.0, 1.0)
+    elif (id = 3)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 0.0, 1.0, 0.0, 1.0)
+    elif (id = 4)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 0.0, 1.0, 1.0, 1.0)
+    elif (id = 5)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 0.0, 0.0, 1.0, 1.0)
+    elif (id = 6)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 1.0, 0.0, 1.0, 1.0)
+    elif (id = 7)
+        do Draw@Rect(x$ float, y$ float, 24.0, 24.0, 1.0, 0.5, 0.0, 1.0)
+    end if
+    }
 end func
 
