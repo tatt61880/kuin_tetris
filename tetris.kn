@@ -1,6 +1,6 @@
 {
 	tetris.kn (for Kuin 1.00):
-		Last Modified: 2013/09/22 23:25:04.
+		Last Modified: 2013/10/19 17:32:00.
 		Created by @tatt61880
 			https://twitter.com/tatt61880
 			https://github.com/tatt61880
@@ -43,15 +43,12 @@ class CStatus()
 	var y: int
 	var type: int
 	var rotate: int
-	func MyCopy(): @CStatus
-		return this.Copy()
-	end func
 end class
 
 var Current: @CStatus
 
 func Random(max: int): int
-	return Rnd@Get(0, max-1)
+	return Rnd@Get(0, max - 1)
 end func
 
 func PutBlock(s: @CStatus, action: bool): bool
@@ -115,7 +112,10 @@ end func
 
 func ProcessInput(): bool
 	var ret: bool :: false
-	var n: @CStatus :: (@Current).MyCopy()
+	{ tetris.cppではCurrentは構造体。代入すると値がコピーされることになる。
+	  tetris.knではCurrentはクラス。 代入すると同じインスタンスを指すことになってしまうので、正しく動作させるにはコピーする必要がある。 }
+	{var n:@CStatus :: @Current {代入では上手くいかない}}
+	var n: @CStatus :: ##@Current
 	if(Input@Pad(0, Input@EBtn#Left) > 0)
 		do n.x :- 1
 	elif(Input@Pad(0, Input@EBtn#Right) > 0)
@@ -147,7 +147,7 @@ func GameOver()
 			end if
 		end for
 	end for
-	while() { KillTimer(hMainWindow, 100)の代わりの無限ループ }
+	while() {KillTimer(hMainWindow, 100)の代わりの無限ループ}
 		do @ShowBoard()
 		do Kuin@Act()
 	end while
@@ -197,9 +197,10 @@ func Init(cfg: Kuin@CCfg)
 end func
 
 func Main()
+	{ 手元の環境でうまく動作しないので調査中…。 }
 	do @Bitmap :: Draw@LoadTex("block.kntex")
 
-	{Init Block}
+	{ Init Block }
 	do @Block :: #[8]@CBlock
 	do @Block[0] :: (#@CBlock).Init(1, 0,  0, 0, 0, 0, 0) {null}
 	do @Block[1] :: (#@CBlock).Init(2, 0, -1, 0, 1, 0, 2) {tetris}
@@ -210,7 +211,7 @@ func Main()
 	do @Block[6] :: (#@CBlock).Init(1, 0,  1, 1, 0, 1, 1) {square}
 	do @Block[7] :: (#@CBlock).Init(4, 0, -1, 1, 0,-1, 0) {T}
 
-	{Init Board}
+	{ Init Board }
 	do @Board :: #[12][]int
 	for i(0, 11)
 		do @Board[i] :: #[25]int
@@ -219,16 +220,14 @@ func Main()
 		for y(0, 24)
 			if(x = 0 | x = 11 | y = 0)
 				do @Board[x][y] :: 1
-				{
 			else
-				{Kuinの場合、デフォルトで0が入っているので、この処理は不要}
-				{do @Board[x][y] :: 0}
-				}
+				{ Kuinの場合、デフォルトで0が入っているので、この処理は不要 }
+				{ do @Board[x][y] :: 0 }
 			end if
 		end for
 	end for
 
-	{Init Current}
+	{ Init Current }
 	do @Current :: #@CStatus
 	do @Current.x :: 5
 	do @Current.y :: 21
