@@ -1,6 +1,6 @@
 {
-	tetris.kn (for Kuin 1.00):
-		Last Modified: 2013/10/19 17:32:00.
+	tetris.kn (for Kuin 1.01):
+		Last Modified: 2014/02/10 01:10:30.
 		Created by @tatt61880
 			https://twitter.com/tatt61880
 			https://github.com/tatt61880
@@ -17,9 +17,9 @@ class CPos()
 	var x: int
 	var y: int
 	func Init(x: int, y: int): @CPos
-		do this.x :: x
-		do this.y :: y
-		return this
+		do me.x :: x
+		do me.y :: y
+		return me
 	end func
 end class
 
@@ -27,12 +27,12 @@ class CBlock()
 	var rotate: int
 	var p: []@CPos
 	func Init(r: int, p0x: int, p0y: int, p1x: int, p1y: int, p2x: int, p2y: int): @CBlock
-		do this.rotate :: r
-		do this.p :: #[3]@CPos
-		do this.p[0] :: (#@CPos).Init(p0x, p0y)
-		do this.p[1] :: (#@CPos).Init(p1x, p1y)
-		do this.p[2] :: (#@CPos).Init(p2x, p2y)
-		return this
+		do me.rotate :: r
+		do me.p :: #[3]@CPos
+		do me.p[0] :: (#@CPos).Init(p0x, p0y)
+		do me.p[1] :: (#@CPos).Init(p1x, p1y)
+		do me.p[2] :: (#@CPos).Init(p2x, p2y)
+		return me
 	end func
 end class
 
@@ -257,6 +257,6 @@ end func
 
 var Bitmap: Draw@CTex
 func BitBlt(x: int, y: int, id: int)
-	do @Bitmap.Draw(0.0, id$ float * 24.0, 23.0, 23.0, x$ float, y$ float, 1.0, 1.0, 1.0, 1.0)
+	do @Bitmap.Draw(0.0, id $ float * 24.0, 23.0, 23.0, x $ float, y $ float, 1.0, 1.0, 1.0, 1.0)
 end func
 
