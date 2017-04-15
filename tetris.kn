@@ -1,6 +1,5 @@
 {
-	tetris.kn (for Kuin 1.01):
-		Last Modified: 2014/02/10 01:10:30.
+	tetris.kn:
 		Created by @tatt61880
 			https://twitter.com/tatt61880
 			https://github.com/tatt61880
@@ -10,162 +9,271 @@
 			http://twitter.com/tkihira/status/262437799775592449
 			https://github.com/DQNEO/CppTetris
 }
+const px: float :: 24.0
+const bx: float :: @px - 2.0
+const W: int :: 10
+const H: int :: 20
+const WW: int :: @W * @px $ int
+const WH: int :: @H * @px $ int
+const MAX_PIECE: int :: 7
 
-var Board: [][]int
-
-class CPos()
-	var x: int
-	var y: int
-	func Init(x: int, y: int): @CPos
-		do me.x :: x
-		do me.y :: y
-		return me
-	end func
-end class
-
-class CBlock()
-	var rotate: int
-	var p: []@CPos
-	func Init(r: int, p0x: int, p0y: int, p1x: int, p1y: int, p2x: int, p2y: int): @CBlock
-		do me.rotate :: r
-		do me.p :: #[3]@CPos
-		do me.p[0] :: (#@CPos).Init(p0x, p0y)
-		do me.p[1] :: (#@CPos).Init(p1x, p1y)
-		do me.p[2] :: (#@CPos).Init(p2x, p2y)
-		return me
-	end func
-end class
-
-var Block: []@CBlock
-
-class CStatus()
-	var x: int
-	var y: int
-	var type: int
-	var rotate: int
-end class
-
-var Current: @CStatus
-
-func Random(max: int): int
-	return Rnd@Get(0, max - 1)
-end func
-
-func PutBlock(s: @CStatus, action: bool): bool
-	if(@Board[s.x][s.y] <> 0)
-		return false
-	end if
-
-	if(action)
-		do @Board[s.x][s.y] :: s.type
-	end if
-
-	for i(0, 2)
-		var dx: int :: @Block[s.type].p[i].x
-		var dy: int :: @Block[s.type].p[i].y
-		var r: int :: s.rotate % @Block[s.type].rotate
-		for(0, r-1)
-			var nx: int :: dx
-			var ny: int :: dy
-			do dx :: ny
-			do dy :: -nx
-		end for
-		if(@Board[s.x + dx][s.y + dy] <> 0)
-			return false
-		end if
-		if(action)
-			do @Board[s.x + dx][s.y + dy] :: s.type
-		end if
-	end for
-	if(!action)
-		do @PutBlock(s, true)
-	end if
-	return true
-end func
-
-func DeleteBlock(s: @CStatus): bool
-	do @Board[s.x][s.y] :: 0
-
-	for i(0, 2)
-		var dx: int :: @Block[s.type].p[i].x
-		var dy: int :: @Block[s.type].p[i].y
-		var r: int :: s.rotate % @Block[s.type].rotate
-		for(0, r-1)
-			var nx: int :: dx
-			var ny: int :: dy
-			do dx :: ny
-			do dy :: -nx
-		end for
-		do @Board[s.x + dx][s.y + dy] :: 0
-	end for
-
-	return true
-end func
-
-func ShowBoard()
-	for x(1, 10)
-		for y(1, 20)
-			do @BitBlt((x - 1) * 24, (20 - y) * 24, @Board[x][y])
-		end for
-	end for
-end func
-
-func ProcessInput(): bool
-	var ret: bool :: false
-	{ tetris.cppではCurrentは構造体。代入すると値がコピーされることになる。
-	  tetris.knではCurrentはクラス。 代入すると同じインスタンスを指すことになってしまうので、正しく動作させるにはコピーする必要がある。 }
-	{var n:@CStatus :: @Current {代入では上手くいかない}}
-	var n: @CStatus :: ##@Current
-	if(Input@Pad(0, Input@EBtn#Left) > 0)
-		do n.x :- 1
-	elif(Input@Pad(0, Input@EBtn#Right) > 0)
-		do n.x :+ 1
-	elif(Input@Pad(0, Input@EBtn#Up) > 0 & Input@Pad(0, Input@EBtn#Up) < 5)
-		do n.rotate :+ 1
-	elif(Input@Pad(0, Input@EBtn#Down) > 0)
-		do n.y :- 1
-		do ret :: true
-	end if
-
-	if(n.x <> @Current.x | n.y <> @Current.y | n.rotate <> @Current.rotate)
-		do @DeleteBlock(@Current)
-		if(@PutBlock(n, false))
-			do @Current :: n
-		else
-			do @PutBlock(@Current, false)
-		end if
-	end if
-
-	return ret
-end func
-
-func GameOver()
-	for x(1, 10)
-		for y(1, 20)
-			if(@Board[x][y] <> 0)
-				do @Board[x][y] :: 1
-			end if
-		end for
-	end for
-	while() {KillTimer(hMainWindow, 100)の代わりの無限ループ}
-		do @ShowBoard()
-		do Kuin@Act()
+func main()
+	var wndMain: wnd@Wnd :: wnd@makeWnd(null, %normal, @WW, @WH, "Tetris")
+	var drawMain: wnd@Draw :: wnd@makeDraw(wndMain, 0, 0, @WW, @WH, %fix, %fix)
+	while(wnd@act())
+		do @game()
 	end while
 end func
 
-func DeleteLine()
-	for y(1, 22)
+func game()
+	{ init piece }
+	do @piece :: #[@MAX_PIECE + 1]@Piece
+	do @piece[0] :: (#@Piece).init(1, 0, 0, 0, 0, 0, 0) {null}
+	do @piece[1] :: (#@Piece).init(2,-1, 0, 1, 0, 2, 0) {I}
+	do @piece[2] :: (#@Piece).init(1, 1, 0, 0, 1, 1, 1) {O}
+	do @piece[3] :: (#@Piece).init(2,-1, 0, 0, 1, 1, 1) {S}
+	do @piece[4] :: (#@Piece).init(2,-1, 1, 0, 1, 1, 0) {Z}
+	do @piece[5] :: (#@Piece).init(4,-1, 0, 1, 0, 1,-1) {J}
+	do @piece[6] :: (#@Piece).init(4,-1, 0, 1, 0,-1,-1) {L}
+	do @piece[7] :: (#@Piece).init(4,-1, 0, 0,-1, 1, 0) {T}
+
+	{ init board }
+	do @board :: #[@W + 2][]int
+	for i(0, @W + 1)
+		do @board[i] :: #[@H + 5]int
+	end for
+	for x(0, @W + 1)
+		for y(0, @H + 4)
+			if(x = 0 | x = @W + 1 | y = 0)
+				do @board[x][y] :: 1
+			else
+				{ Kuinの場合、デフォルトで0が入っているので、この処理は不要です }
+				{ do @board[x][y] :: 0 }
+			end if
+		end for
+	end for
+
+	{ init current }
+	do @current :: #@Status
+	do @current.x :: 5
+	do @current.y :: @H + 1
+	do @current.type :: lib@rnd(0, @MAX_PIECE - 1) + 1
+	do @current.rotate :: 0
+
+	do @putBlock(@current, false)
+	var w: int :: 0
+	do @paused :: false
+	while(wnd@act())
+		if(!@isPaused())
+			if(w % 4 = 0)
+				if(@processInput())
+					do w :: 0
+				end if
+			end if
+			if(w % 10 = 0)
+				do @blockDown()
+			end if
+			do w :+ 1
+		end if
+		do @showBoard()
+		if(@resetCheck())
+			ret
+		end if
+	end while
+end func
+
+func processInput(): bool
+	var retVal: bool :: false
+	{
+	tetris.cppではcurrentは構造体です。代入すると値がコピーされることになります。
+	tetris.knではcurrentはクラスです。 代入すると同じインスタンスを指すことになってしまうので、正しく動作させるにはコピーする必要があります。
+	}
+	;var n: @Status :: @current {代入では上手くいきません！}
+	var n: @Status :: ##@current
+	if(input@pad(0, %left) > 0)
+		do n.x :- 1
+	elif(input@pad(0, %right) > 0)
+		do n.x :+ 1
+	elif(input@pad(0, %up) > 0 & input@pad(0, %up) < 5)
+		do n.rotate :+ 1
+	elif(input@pad(0, %down) > 0)
+		do n.y :- 1
+		do retVal :: true
+	end if
+
+	if(n.x <> @current.x | n.y <> @current.y | n.rotate <> @current.rotate)
+		do @deleteBlock(@current)
+		if(@putBlock(n, false))
+			do @current :: n
+		else
+			do @putBlock(@current, false)
+		end if
+	end if
+
+	ret retVal
+end func
+
+func deleteBlock(s: @Status): bool
+	do @board[s.x][s.y] :: 0
+
+	for i(0, 2)
+		var dx: int :: @piece[s.type].p[i].x
+		var dy: int :: @piece[s.type].p[i].y
+		var r: int :: s.rotate % @piece[s.type].rotate
+		for(0, r - 1)
+			var nx: int :: dx
+			var ny: int :: dy
+			do dx :: ny
+			do dy :: -nx
+		end for
+		do @board[s.x + dx][s.y + dy] :: 0
+	end for
+	ret true
+end func
+
+func blockDown()
+	do @deleteBlock(@current)
+	do @current.y :- 1
+	if(!@putBlock(@current, false))
+		do @current.y :+ 1
+		do @putBlock(@current, false)
+
+		do @deleteLine()
+
+		do @current.x :: 5
+		do @current.y :: @H + 1
+		do @current.type :: lib@rnd(0, @MAX_PIECE - 1) + 1
+		do @current.rotate :: 0
+		if(!@putBlock(@current, false))
+			do @gameover()
+		end if
+	end if
+end func
+
+func showBoard()
+	for x(1, @W)
+		for y(1, @H)
+			do @bitBlt((x - 1) $ float * @px, (@H - y) $ float * @px, @board[x][y])
+		end for
+	end for
+	do draw@render(60)
+end func
+
+func resetCheck() : bool
+	{スペースキーを長押ししたときにリスタートします。}
+	ret (input@pad(0, %a) = 30)
+end func
+
+var paused: bool
+func isPaused() : bool
+	{スペースキーを押ししたときにポーズ状態をトグルします。}
+	if((input@pad(0, %a) = 1))
+		do @paused :: !@paused
+	end if
+	ret @paused
+end func
+
+var board: [][]int
+var piece: []@Piece
+var current: @Status
+
+class Piece()
+	+var rotate: int
+	+var p: []@Pos
+	+func init(r: int, p0x: int, p0y: int, p1x: int, p1y: int, p2x: int, p2y: int): @Piece
+		do me.rotate :: r
+		do me.p :: #[3]@Pos
+		do me.p[0] :: (#@Pos).init(p0x, p0y)
+		do me.p[1] :: (#@Pos).init(p1x, p1y)
+		do me.p[2] :: (#@Pos).init(p2x, p2y)
+		ret me
+	end func
+end class
+
+class Pos()
+	+var x: int
+	+var y: int
+	+func init(x: int, y: int): @Pos
+		do me.x :: x
+		do me.y :: y
+		ret me
+	end func
+end class
+
+class Status()
+	+var x: int
+	+var y: int
+	+var type: int
+	+var rotate: int
+end class
+
+func putBlock(s: @Status, action: bool): bool
+	if(@board[s.x][s.y] <> 0)
+		ret false
+	end if
+
+	if(action)
+		do @board[s.x][s.y] :: s.type
+	end if
+
+	for i(0, 2)
+		var dx: int :: @piece[s.type].p[i].x
+		var dy: int :: @piece[s.type].p[i].y
+		var r: int :: s.rotate % @piece[s.type].rotate
+		for(0, r - 1)
+			var nx: int :: dx
+			var ny: int :: dy
+			do dx :: ny
+			do dy :: -nx
+		end for
+		if(@board[s.x + dx][s.y + dy] <> 0)
+			ret false
+		end if
+		if(action)
+			do @board[s.x + dx][s.y + dy] :: s.type
+		end if
+	end for
+	if(!action)
+		do @putBlock(s, true)
+	end if
+	ret true
+end func
+
+func bitBlt(x: float, y: float, id: int)
+	{ セガテトリスの配色にしました。 }
+    switch(id)
+	case 0 {背景}
+        do draw@rect(x,       y,       @px, @px, 0.8, 0.8, 1.0, 1.0)
+	case 1 {I}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 1.0, 0.0, 0.0, 1.0)
+	case 2 {O}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 1.0, 1.0, 0.0, 1.0)
+	case 3 {S}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 1.0, 0.0, 1.0, 1.0)
+	case 4 {Z}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 0.0, 1.0, 0.0, 1.0)
+	case 5 {J}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 0.0, 0.0, 1.0, 1.0)
+	case 6 {L}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 1.0, 0.5, 0.0, 1.0)
+	case 7 {T}
+        do draw@rect(x + 1.0, y + 1.0, @bx, @bx, 0.0, 1.0, 1.0, 1.0)
+    end switch
+end func
+
+func deleteLine()
+	for y(1, @H + 2)
 		var flag: bool :: true
-		for x(1, 10)
-			if(@Board[x][y] = 0)
+		for x(1, @W)
+			if(@board[x][y] = 0)
 				do flag :: false
 			end if
 		end for
 
 		if(flag)
-			for j(y, 22)
-				for i(1, 10)
-					do @Board[i][j] :: @Board[i][j + 1]
+			for j(y, @H + 2)
+				for i(1, @W)
+					do @board[i][j] :: @board[i][j + 1]
 				end for
 			end for
 			do y :- 1
@@ -173,90 +281,18 @@ func DeleteLine()
 	end for
 end func
 
-func blockDown()
-	do @DeleteBlock(@Current)
-	do @Current.y :- 1
-	if(!@PutBlock(@Current, false))
-		do @Current.y :+ 1
-		do @PutBlock(@Current, false)
-
-		do @DeleteLine()
-
-		do @Current.x :: 5
-		do @Current.y :: 21
-		do @Current.type :: @Random(7) + 1
-		do @Current.rotate :: @Random(4)
-		if(!@PutBlock(@Current, false))
-			do @GameOver()
-		end if
-	end if
-end func
-
-func Init(cfg: Kuin@CCfg)
-	do cfg.Title :: "テトリス"
-end func
-
-func Main()
-	{ 手元の環境でうまく動作しないので調査中…。 }
-	do @Bitmap :: Draw@LoadTex("block.kntex")
-
-	{ Init Block }
-	do @Block :: #[8]@CBlock
-	do @Block[0] :: (#@CBlock).Init(1, 0,  0, 0, 0, 0, 0) {null}
-	do @Block[1] :: (#@CBlock).Init(2, 0, -1, 0, 1, 0, 2) {tetris}
-	do @Block[2] :: (#@CBlock).Init(4, 0, -1, 0, 1, 1, 1) {L1}
-	do @Block[3] :: (#@CBlock).Init(4, 0, -1, 0, 1,-1, 1) {L2}
-	do @Block[4] :: (#@CBlock).Init(2, 0, -1, 1, 0, 1, 1) {key1}
-	do @Block[5] :: (#@CBlock).Init(2, 0, -1,-1, 0,-1, 1) {key2}
-	do @Block[6] :: (#@CBlock).Init(1, 0,  1, 1, 0, 1, 1) {square}
-	do @Block[7] :: (#@CBlock).Init(4, 0, -1, 1, 0,-1, 0) {T}
-
-	{ Init Board }
-	do @Board :: #[12][]int
-	for i(0, 11)
-		do @Board[i] :: #[25]int
-	end for
-	for x(0, 11)
-		for y(0, 24)
-			if(x = 0 | x = 11 | y = 0)
-				do @Board[x][y] :: 1
-			else
-				{ Kuinの場合、デフォルトで0が入っているので、この処理は不要 }
-				{ do @Board[x][y] :: 0 }
+func gameover()
+	for x(1, @W)
+		for y(1, @H)
+			if(@board[x][y] <> 0)
+				do @board[x][y] :: 1
 			end if
 		end for
 	end for
-
-	{ Init Current }
-	do @Current :: #@CStatus
-	do @Current.x :: 5
-	do @Current.y :: 21
-	do @Current.type :: @Random(7) + 1
-	do @Current.rotate :: @Random(4)
-
-	do @PutBlock(@Current, false)
-	var w: int :: 0
-
-	while()
-		do Kuin@Act()
-		{do Kuin@Dbg("Kuin@FPS()=" ~ Kuin@FPS().ToStr())}
-		{do Kuin@Dbg("Kuin@Cnt()=" ~ Kuin@Cnt().ToStr())}
-		if(w % 4 = 0)
-			if(@ProcessInput())
-				do w :: 0
-			end if
+	while(wnd@act()) {KillTimer(hMainWindow, 100)の代わりの無限ループ}
+		do @showBoard()
+		if(@resetCheck())
+			ret
 		end if
-		if(w % 10 = 0)
-			{do Kuin@Dbg("w % 5 = 0")}
-			do @blockDown()
-		end if
-		do w :+ 1
-		do @ShowBoard()
 	end while
 end func
-
-var Bitmap: Draw@CTex
-func BitBlt(x: int, y: int, id: int)
-	do @Bitmap.Draw(0.0, id $ float * 24.0, 23.0, 23.0, x $ float, y $ float, 1.0, 1.0, 1.0, 1.0)
-end func
-
