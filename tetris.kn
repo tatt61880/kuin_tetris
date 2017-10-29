@@ -18,8 +18,8 @@ const WH: int :: @H * @px $ int
 const MAX_PIECE: int :: 7
 
 func main()
-	var wndMain: wnd@Wnd :: wnd@makeWnd(null, %normal, @WW, @WH, "Tetris")
-	var drawMain: wnd@Draw :: wnd@makeDraw(wndMain, 0, 0, @WW, @WH, %fix, %fix, false)
+	var wndMain: wnd@Wnd :: wnd@makeWnd(null, %aspect, @WW, @WH, "Tetris")
+	var drawMain: wnd@Draw :: wnd@makeDraw(wndMain, 0, 0, @WW, @WH, %scale, %scale, false)
 	while(wnd@act())
 		do @game()
 	end while
